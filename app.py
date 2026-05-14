@@ -10,20 +10,27 @@ def detect_suspicious_processes():
 
     suspicious = []
 
-    for proc in psutil.process_iter(['pid', 'name', 'cpu_percent']):
+    try:
 
-        try:
-            cpu = proc.info['cpu_percent']
-            name = proc.info['name']
+        for proc in psutil.process_iter(['pid', 'name', 'cpu_percent']):
 
-            if cpu > 80:
-                suspicious.append(f"High CPU Usage: {name}")
+            try:
 
-            if name and any(x in name.lower() for x in ["temp", "crypt", "miner", "hack"]):
-                suspicious.append(f"Suspicious Name: {name}")
+                cpu = proc.info['cpu_percent']
+                name = proc.info['name']
 
-        except:
-            pass
+                if cpu and cpu > 80:
+                    suspicious.append(f"High CPU Usage: {name}")
+
+                if name and any(x in name.lower() for x in ["temp", "crypt", "miner", "hack"]):
+                    suspicious.append(f"Suspicious Name: {name}")
+
+            except:
+                pass
+
+    except Exception as e:
+
+        suspicious.append(f"Process scan unavailable: {str(e)}")
 
     return suspicious
 
@@ -31,14 +38,20 @@ def detect_suspicious_processes():
 # ---------------- NETWORK CONNECTION CHECK ----------------
 def check_network_connections():
 
-    connections = psutil.net_connections()
-
     suspicious_ports = []
 
-    for conn in connections:
+    try:
 
-        if conn.laddr and conn.laddr.port not in [80, 443, 53]:
-            suspicious_ports.append(conn.laddr.port)
+        connections = psutil.net_connections()
+
+        for conn in connections:
+
+            if conn.laddr and conn.laddr.port not in [80, 443, 53]:
+                suspicious_ports.append(conn.laddr.port)
+
+    except Exception as e:
+
+        return [f"Network scan unavailable: {str(e)}"]
 
     return list(set(suspicious_ports))[:10]
 
@@ -48,15 +61,19 @@ def top_processes():
 
     procs = []
 
-    for p in psutil.process_iter(['name', 'cpu_percent']):
+    try:
 
-        try:
-            procs.append((p.info['name'], p.info['cpu_percent']))
+        for p in psutil.process_iter(['name', 'cpu_percent']):
 
-        except:
-            pass
+            try:
+                procs.append((p.info['name'], p.info['cpu_percent']))
+            except:
+                pass
 
-    procs.sort(key=lambda x: x[1], reverse=True)
+        procs.sort(key=lambda x: x[1], reverse=True)
+
+    except:
+        pass
 
     return procs[:5]
 
@@ -406,15 +423,23 @@ Suggestions:
 @app.route("/chat", methods=["POST"])
 def chat():
 
-    data = request.get_json()
+    try:
 
-    message = data.get("message", "")
+        data = request.get_json()
 
-    response = chatbot_response(message)
+        message = data.get("message", "")
 
-    return jsonify({
-        "reply": response
-    })
+        response = chatbot_response(message)
+
+        return jsonify({
+            "reply": response
+        })
+
+    except Exception as e:
+
+        return jsonify({
+            "reply": f"Error occurred: {str(e)}"
+        })
 
 
 # ---------------- HOME ----------------
